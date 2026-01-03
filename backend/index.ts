@@ -1,6 +1,10 @@
 import  express from "express";
+import mongoose from "mongoose";
 import { ClassIdSchema, ClassSchema, LoginSchema, SignUpSchema, StudentIdSchema } from "./types";
+import dotenv from 'dotenv'
 const app = express()
+app.use(express.json())
+
 
 app.post('/auth/signup',(req,res)=>{
     const parseData = SignUpSchema.safeParse(req.body)
@@ -9,8 +13,12 @@ app.post('/auth/signup',(req,res)=>{
             'success': false,
             'error':'Invalid request schema'
         })
+        return
     }
     //datanaase call
+    
+
+
 
     //check for duplicate email
     const duplicateEmail  = null
@@ -19,6 +27,7 @@ app.post('/auth/signup',(req,res)=>{
             'success':false,
             'error':'Email already exists'
         })
+        return
     }
 
     res.status(200).json({
@@ -40,6 +49,7 @@ app.post('/auth/login',(req,res)=>{
             'success':false,
             'error':'Invalid request schema'
         })
+        return
     }
     //database call
 
@@ -49,6 +59,7 @@ app.post('/auth/login',(req,res)=>{
             'success':false,
             'error': 'Invalid email or password'
         })
+        return
     }
 
     res.status(200).json({
@@ -81,6 +92,7 @@ app.post('/class',(req,res)=>{
             'success':false,
             'error': 'Invalid request schema'
         })
+        return
     }
 
     //add to database
@@ -105,6 +117,7 @@ app.post('/class/:id/add-student',(req,res)=>{
             'success':false,
             'error':'Invalid request schema'
         })
+        return
     }
 
     res.status(200).json({
@@ -185,6 +198,7 @@ app.post('/attendance/start',(req,res)=>{
             'success':false,
             'error':'Invalid request schema'
         })
+        return
     }
 
     res.status(200).json({
@@ -198,5 +212,7 @@ app.post('/attendance/start',(req,res)=>{
 
 
 app.listen(3000, ()=>{
+    mongoose.connect(process.env.mongodb_URL || ''
+    ).then(()=>console.log('connected to DB'))
     console.log('server running in port 3000')
 })
