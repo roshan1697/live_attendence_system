@@ -2,43 +2,68 @@ import  express from "express";
 import mongoose from "mongoose";
 import { ClassIdSchema, ClassSchema, LoginSchema, SignUpSchema, StudentIdSchema } from "./types";
 import dotenv from 'dotenv'
+import { User } from "./db";
+import bcrypt from 'bcrypt'
+
+
 const app = express()
 app.use(express.json())
+const saltRounds = 10
 
-
-app.post('/auth/signup',(req,res)=>{
+app.post('/auth/signup', async(req,res)=>{
     const parseData = SignUpSchema.safeParse(req.body)
     if(!parseData.success){
         res.status(400).json({
-            'success': false,
+            'success': "false",
             'error':'Invalid request schema'
         })
         return
     }
-    //datanaase call
+    
+    
+    
+    try {
+        //bcrypt hashing
+        const hashedPassword = await bcrypt.hash(parseData.data.password , saltRounds)
+        //datanaase call
+        const user = await User.create({
+            name:parseData.data.name,
+            email:parseData.data.email,
+            password:hashedPassword,
+            role:parseData.data.role
+        })
+        res.status(201).json({
+        'success':'true',
+        'data':{
+            'id': user._id,
+            'name':user.name,
+            'email':user.email,
+            'role':user.role
+        }
+    })
+
+    }catch (err:unknown){
+        const e = err as { code?: 11000}   
+        if(e?.code === 11000){
+            res.status(400).json({
+                'success': 'false',
+                'error':'Email already exists'
+            })
+            return
+        }
+
+        res.status(500).json({  
+            'success': 'false',
+            'error': 'An internal error occurred.'
+        })
+    }
     
 
 
 
-    //check for duplicate email
-    const duplicateEmail  = null
-    if(duplicateEmail){
-        res.status(400).json({
-            'success':false,
-            'error':'Email already exists'
-        })
-        return
-    }
 
-    res.status(200).json({
-        'success':'true',
-        'data':{
-            'id': '',
-            'name':'',
-            'email':'',
-            'role':''
-        }
-    })
+
+    
     
 })
 
@@ -62,7 +87,7 @@ app.post('/auth/login',(req,res)=>{
         return
     }
 
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'token':''
@@ -72,7 +97,7 @@ app.post('/auth/login',(req,res)=>{
 
 app.get('/auth/me',(req,res)=>{
     //middleware auth
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data': {
             'id': '',
@@ -97,7 +122,7 @@ app.post('/class',(req,res)=>{
 
     //add to database
 
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'id': '',
@@ -120,7 +145,7 @@ app.post('/class/:id/add-student',(req,res)=>{
         return
     }
 
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'id':'',
@@ -134,7 +159,7 @@ app.post('/class/:id/add-student',(req,res)=>{
 app.get('/class/:id',(req,res)=>{
     //middleware auth
 
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'id':'',
@@ -154,7 +179,7 @@ app.get('/class/:id',(req,res)=>{
 //teacher only
 app.get('/students',(req,res)=>{
     //middleware auth teacher only
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':[
             {
@@ -170,7 +195,7 @@ app.get('/class/:id/my-attendance', (req,res)=>{
     //middleware auth
 
     //attendance persisted
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data': {
             'classId':'',
@@ -180,7 +205,7 @@ app.get('/class/:id/my-attendance', (req,res)=>{
 
 
     //attendance non-persisted
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'classId':'',
@@ -201,7 +226,7 @@ app.post('/attendance/start',(req,res)=>{
         return
     }
 
-    res.status(200).json({
+    res.status(201).json({
         'success':true,
         'data':{
             'classId':'',
