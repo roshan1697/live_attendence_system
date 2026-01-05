@@ -1,16 +1,15 @@
-import { password } from "bun";
 import z from "zod";
 
 export const SignUpSchema = z.object({
-    name:z.string(),
-    email:z.string().trim().toLowerCase().pipe(z.email()),
+    name: z.string(),
+    email: z.string().trim().toLowerCase().pipe(z.email()),
     password: z.string().min(6),
-    role: z.enum(['student','teacher'])
+    role: z.enum(['student', 'teacher'])
 })
 
 export const LoginSchema = z.object({
-    email:z.email(),
-    password:z.string()
+    email: z.string().trim().toLowerCase().pipe(z.email()),
+    password: z.string()
 })
 
 export const ClassSchema = z.object({
@@ -18,9 +17,19 @@ export const ClassSchema = z.object({
 })
 
 export const StudentIdSchema = z.object({
-    studentId:z.string()
+    studentId: z.string()
 })
 
 export const ClassIdSchema = z.object({
-    classId:z.string()
+    classId: z.string()
 })
+
+
+declare global {
+    namespace Express {
+        export interface Request {
+            role?: 'student' | 'teacher'
+            userId: string
+        }
+    }
+}
