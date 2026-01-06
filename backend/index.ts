@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import { Class, User } from "./db";
 import bcrypt from 'bcrypt'
 import  Jwt  from "jsonwebtoken";
-import Auth from "./middleware/auth";
+import {Auth, ClassAuth, TeacherAuth} from "./middleware/auth";
 
 
 
@@ -26,14 +26,14 @@ app.post('/auth/signup', async (req, res) => {
     try {
         //bcrypt hashing
         const hashedPassword = await bcrypt.hash(parseData.data.password, saltRounds)
-        //datanaase call
+        //database call
         const user = await User.create({
             name: parseData.data.name,
             email: parseData.data.email,
             password: hashedPassword,
             role: parseData.data.role
         })
-        const token = Jwt.sign({userId:user._id},process.env.jwt_secret || '',{
+        const token = Jwt.sign({userId:user._id,role:user.role},process.env.jwt_secret || '',{
             expiresIn:'12h'
         })
         res.status(201).json({
@@ -95,7 +95,7 @@ app.post('/auth/login', async(req, res) => {
         })
         return
     }
-    const token = Jwt.sign({userId:user._id},process.env.jwt_secret || '',{
+    const token = Jwt.sign({userId:user._id,role:user.role},process.env.jwt_secret || '',{
         expiresIn:'12h'
     })
 
@@ -115,21 +115,38 @@ app.post('/auth/login', async(req, res) => {
     
 })
 
-app.get('/auth/me',Auth, (req, res) => {
-    //middleware auth
-    res.status(201).json({
-        'success': true,
-        'data': {
-            'id': '',
-            'name': '',
-            'email': '',
-            'role': ''
+app.get('/auth/me',Auth,async (req, res) => {
+    try{
+        const user = await User.findOne({
+            _id:req.userId
+        })
+        if(!user){
+            res.status(404).json({
+                "success": false,
+                "error": "User not found"
+            })
         }
-    })
+        res.status(201).json({
+            'success': true,
+            'data': {
+                'id': user?._id,
+                'name': user?.name,
+                'email': user?.email,
+                'role': user?.role
+            }
+        })
+    }
+    catch(e){
+        res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+    }
+    
 })
 
-app.post('/class',Auth, async(req, res) => {
-    //middleware  auth
+app.post('/class',TeacherAuth, async(req, res) => {
+    //middleware  auth teacher only
     const parseData = ClassSchema.safeParse(req.body)
 
     if (!parseData.success) {
@@ -141,26 +158,33 @@ app.post('/class',Auth, async(req, res) => {
     }
 
     try {
-        const classes = await Class.find()
-
-    }catch(e){
-
-    }
-
-    res.status(201).json({
+        const classes = await Class.create({
+            className:parseData.data.className,
+            teacherId:req.userId
+        })
+        res.status(201).json({
         'success': true,
         'data': {
-            'id': '',
-            'className': '',
-            'teacherId': '',
+            'id': classes._id,
+            'className': classes.className,
+            'teacherId': classes.teacherId,
             'studentIds': []
         }
     })
+
+    }catch(e){
+        res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+    }
+
+    
 })
 
-app.post('/class/:id/add-student', (req, res) => {
-    //middleware auth
-
+app.post('/class/:id/add-student',TeacherAuth,ClassAuth,async (req, res) => {
+    //middleware auth teacher only
+    const {id} = req.params
     const parseData = StudentIdSchema.safeParse(req.body)
     if (!parseData.success) {
         res.status(400).json({
@@ -169,16 +193,37 @@ app.post('/class/:id/add-student', (req, res) => {
         })
         return
     }
-
+    try {
+        
+    const updateClass = await Class.updateOne(
+        {_id:id},{
+            $push: {
+                studentIds:parseData.data.studentId
+            }
+        }
+    )
+    if(!updateClass.acknowledged){
+        return
+    }
+    const updatedClass = await Class.findOne({
+        _id:id
+    })
     res.status(201).json({
         'success': true,
         'data': {
-            'id': '',
-            'className': '',
-            'teacherId': '',
-            'studentIds': ['']
+            'id': updatedClass?._id,
+            'className': updatedClass?.className,
+            'teacherId': updatedClass?.teacherId,
+            'studentIds': updatedClass?.studentIds
         }
     })
+    }catch(e){
+        res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+    }
+
 })
 
 app.get('/class/:id', (req, res) => {
