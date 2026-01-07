@@ -25,6 +25,7 @@ export const ClassIdSchema = z.object({
 })
 
 
+
 declare global {
     namespace Express {
         export interface Request {

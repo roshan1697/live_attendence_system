@@ -1,17 +1,26 @@
 import express from "express";
 import mongoose from "mongoose";
+import { Types } from "mongoose";
 import { ClassIdSchema, ClassSchema, LoginSchema, SignUpSchema, StudentIdSchema } from "./types";
 import dotenv from 'dotenv'
 import { Class, User } from "./db";
 import bcrypt from 'bcrypt'
-import  Jwt  from "jsonwebtoken";
-import {Auth, ClassAuth, TeacherAuth} from "./middleware/auth";
+import Jwt from "jsonwebtoken";
+import { Auth, ClassAuth, SessionClass, TeacherAuth } from "./middleware/auth";
+import { email } from "zod";
 
 
 
 const app = express()
 app.use(express.json())
 const saltRounds = 10
+
+type ClassPopulated = {
+    _id: Types.ObjectId;
+    className: string;
+    teacherId: null | { _id: Types.ObjectId; name: string; email: string };
+    studentIds: Array<{ _id: Types.ObjectId; name: string; email: string }>;
+};
 
 app.post('/auth/signup', async (req, res) => {
     const parseData = SignUpSchema.safeParse(req.body)
@@ -33,8 +42,8 @@ app.post('/auth/signup', async (req, res) => {
             password: hashedPassword,
             role: parseData.data.role
         })
-        const token = Jwt.sign({userId:user._id,role:user.role},process.env.jwt_secret || '',{
-            expiresIn:'12h'
+        const token = Jwt.sign({ userId: user._id, role: user.role }, process.env.jwt_secret || '', {
+            expiresIn: '12h'
         })
         res.status(201).json({
             'success': true,
@@ -65,7 +74,7 @@ app.post('/auth/signup', async (req, res) => {
 
 })
 
-app.post('/auth/login', async(req, res) => {
+app.post('/auth/login', async (req, res) => {
     const parseData = LoginSchema.safeParse(req.body)
     if (!parseData.success) {
         res.status(400).json({
@@ -77,50 +86,50 @@ app.post('/auth/login', async(req, res) => {
     //database call
     try {
         const user = await User.findOne({
-        email:parseData.data.email
-    })
-    
-    if (!user) {
-        res.status(400).json({
-            'success': false,
-            'error': 'Invalid email or password'
+            email: parseData.data.email
         })
-        return
-    }
-    const comparePassword = await bcrypt.compare(parseData.data.password, user.password as string)
-    if(!comparePassword){
-        res.status(400).json({
-            'success': false,
-            'error': 'Invalid email or password'
-        })
-        return
-    }
-    const token = Jwt.sign({userId:user._id,role:user.role},process.env.jwt_secret || '',{
-        expiresIn:'12h'
-    })
 
-    res.status(201).json({
-        'success': true,
-        'data': {
-            'token': token
+        if (!user) {
+            res.status(400).json({
+                'success': false,
+                'error': 'Invalid email or password'
+            })
+            return
         }
-    })
-    }catch (e){
+        const comparePassword = await bcrypt.compare(parseData.data.password, user.password as string)
+        if (!comparePassword) {
+            res.status(400).json({
+                'success': false,
+                'error': 'Invalid email or password'
+            })
+            return
+        }
+        const token = Jwt.sign({ userId: user._id, role: user.role }, process.env.jwt_secret || '', {
+            expiresIn: '12h'
+        })
+
+        res.status(201).json({
+            'success': true,
+            'data': {
+                'token': token
+            }
+        })
+    } catch (e) {
         res.status(500).json({
             'success': false,
             'error': 'An internal error occurred.'
         })
     }
 
-    
+
 })
 
-app.get('/auth/me',Auth,async (req, res) => {
-    try{
+app.get('/auth/me', Auth, async (req, res) => {
+    try {
         const user = await User.findOne({
-            _id:req.userId
+            _id: req.userId
         })
-        if(!user){
+        if (!user) {
             res.status(404).json({
                 "success": false,
                 "error": "User not found"
@@ -136,16 +145,16 @@ app.get('/auth/me',Auth,async (req, res) => {
             }
         })
     }
-    catch(e){
+    catch (e) {
         res.status(500).json({
             'success': false,
             'error': 'An internal error occurred.'
         })
     }
-    
+
 })
 
-app.post('/class',TeacherAuth, async(req, res) => {
+app.post('/class', TeacherAuth, async (req, res) => {
     //middleware  auth teacher only
     const parseData = ClassSchema.safeParse(req.body)
 
@@ -159,32 +168,32 @@ app.post('/class',TeacherAuth, async(req, res) => {
 
     try {
         const classes = await Class.create({
-            className:parseData.data.className,
-            teacherId:req.userId
+            className: parseData.data.className,
+            teacherId: req.userId
         })
         res.status(201).json({
-        'success': true,
-        'data': {
-            'id': classes._id,
-            'className': classes.className,
-            'teacherId': classes.teacherId,
-            'studentIds': []
-        }
-    })
+            'success': true,
+            'data': {
+                'id': classes._id,
+                'className': classes.className,
+                'teacherId': classes.teacherId,
+                'studentIds': []
+            }
+        })
 
-    }catch(e){
+    } catch (e) {
         res.status(500).json({
             'success': false,
             'error': 'An internal error occurred.'
         })
     }
 
-    
+
 })
 
-app.post('/class/:id/add-student',TeacherAuth,ClassAuth,async (req, res) => {
+app.post('/class/:id/add-student', TeacherAuth, ClassAuth, async (req, res) => {
     //middleware auth teacher only
-    const {id} = req.params
+    const { id } = req.params
     const parseData = StudentIdSchema.safeParse(req.body)
     if (!parseData.success) {
         res.status(400).json({
@@ -194,30 +203,30 @@ app.post('/class/:id/add-student',TeacherAuth,ClassAuth,async (req, res) => {
         return
     }
     try {
-        
-    const updateClass = await Class.updateOne(
-        {_id:id},{
+
+        const updateClass = await Class.updateOne(
+            { _id: id }, {
             $push: {
-                studentIds:parseData.data.studentId
+                studentIds: parseData.data.studentId
             }
         }
-    )
-    if(!updateClass.acknowledged){
-        return
-    }
-    const updatedClass = await Class.findOne({
-        _id:id
-    })
-    res.status(201).json({
-        'success': true,
-        'data': {
-            'id': updatedClass?._id,
-            'className': updatedClass?.className,
-            'teacherId': updatedClass?.teacherId,
-            'studentIds': updatedClass?.studentIds
+        )
+        if (!updateClass.acknowledged) {
+            return
         }
-    })
-    }catch(e){
+        const updatedClass = await Class.findOne({
+            _id: id
+        })
+        res.status(201).json({
+            'success': true,
+            'data': {
+                'id': updatedClass?._id,
+                'className': updatedClass?.className,
+                'teacherId': updatedClass?.teacherId,
+                'studentIds': updatedClass?.studentIds
+            }
+        })
+    } catch (e) {
         res.status(500).json({
             'success': false,
             'error': 'An internal error occurred.'
@@ -226,39 +235,63 @@ app.post('/class/:id/add-student',TeacherAuth,ClassAuth,async (req, res) => {
 
 })
 
-app.get('/class/:id', (req, res) => {
+app.get('/class/:id', Auth, SessionClass, async (req, res) => {
     //middleware auth
+    const { id } = req.params
+    try {
 
-    res.status(201).json({
-        'success': true,
-        'data': {
-            'id': '',
-            'className': '',
-            'teacherId': '',
-            'students': [
-                {
-                    'id': '',
-                    'name': '',
-                    'email': ''
-                }
-            ]
-        }
-    })
+        const classes = await Class.findOne({
+            _id: id
+        }).populate('teacherId', 'name email').populate('studentIds', '_id name email').lean<ClassPopulated | null>() 
+
+        res.status(201).json({
+            'success': true,
+            'data': {
+                'id': classes?._id,
+                'className': classes?.className,
+                'teacherId': classes?.teacherId ? {
+                    'name': classes?.teacherId.name,
+                    'email': classes?.teacherId.email
+                } : {},
+                'students': [
+                    classes?.studentIds.map((s) => {
+                        return { 'id': s._id, 'name': s.name, 'email': s.email }
+
+                    })
+                ]
+            }
+        })
+    } catch (error) {
+        res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+    }
+
 })
 
 //teacher only
-app.get('/students', (req, res) => {
+app.get('/students',TeacherAuth, async(req, res) => {
     //middleware auth teacher only
-    res.status(201).json({
+    try {
+        const students = await User.find({
+            role:'student'
+        })
+        res.status(201).json({
         'success': true,
         'data': [
-            {
-                'id': '',
-                'name': '',
-                'email': ''
-            }
+            students.map((s)=>{
+                return { 'id': s._id, 'name': s.name, 'email': s.email }
+            })
         ]
     })
+    } catch (error) {
+        res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+    }
+
 })
 
 app.get('/class/:id/my-attendance', (req, res) => {

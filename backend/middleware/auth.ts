@@ -63,6 +63,7 @@ export const ClassAuth = async(req:Request,res:Response,next:NextFunction) =>{
                     "success": false,
                     "error": "Class not found"
                 })
+                return
         }
         if(JSON.stringify(classes?.teacherId) !== req.userId){
                 res.status(403).json({
@@ -81,3 +82,35 @@ export const ClassAuth = async(req:Request,res:Response,next:NextFunction) =>{
     }
 }
 
+export const SessionClass = async(req:Request,res:Response,next:NextFunction) =>{
+        const {id} = req.params
+        try {
+            const classes = await Class.findOne({
+                _id:id
+            })
+            if(!classes){
+                res.status(404).json({
+                    "success": false,
+                    "error": "Class not found"
+                })
+                return
+            }
+            if(JSON.stringify(classes.teacherId) === req.userId){
+                next()
+            }
+            const student = classes.studentIds.find((id)=> JSON.stringify(id) === req.userId)
+            if(!student) { 
+                res.status(403).json({
+                    'success':false,
+                    'error': "Forbidden, not your class"
+                })
+                return
+            }
+            next()
+        } catch (error) {
+            res.status(500).json({
+            'success': false,
+            'error': 'An internal error occurred.'
+        })
+        }
+}
