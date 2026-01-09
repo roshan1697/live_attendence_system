@@ -17,11 +17,11 @@ const ClassSchema = new mongoose.Schema({
     className:String,
     teacherId:{
         type: mongoose.Schema.ObjectId,
-        ref: UserSchema
+        ref: 'User'
     },
     studentIds: [{ 
         type:mongoose.Schema.ObjectId,
-        ref:UserSchema
+        ref:'User'
     }]
 }) 
 

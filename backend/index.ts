@@ -7,9 +7,6 @@ import { Class, User } from "./db";
 import bcrypt from 'bcrypt'
 import Jwt from "jsonwebtoken";
 import { Auth, ClassAuth, SessionClass, TeacherAuth } from "./middleware/auth";
-import { email } from "zod";
-
-
 
 const app = express()
 app.use(express.json())
@@ -135,7 +132,7 @@ app.get('/auth/me', Auth, async (req, res) => {
                 "error": "User not found"
             })
         }
-        res.status(201).json({
+        res.status(200).json({
             'success': true,
             'data': {
                 'id': user?._id,
@@ -244,7 +241,7 @@ app.get('/class/:id', Auth, SessionClass, async (req, res) => {
             _id: id
         }).populate('teacherId', 'name email').populate('studentIds', '_id name email').lean<ClassPopulated | null>() 
 
-        res.status(201).json({
+        res.status(200).json({
             'success': true,
             'data': {
                 'id': classes?._id,
@@ -294,31 +291,31 @@ app.get('/students',TeacherAuth, async(req, res) => {
 
 })
 
-app.get('/class/:id/my-attendance', (req, res) => {
+app.get('/class/:id/my-attendance', Auth,SessionClass, (req, res) => {
     //middleware auth
-
+    const {id} = req.params
     //attendance persisted
-    res.status(201).json({
+    res.status(200).json({
         'success': true,
         'data': {
-            'classId': '',
+            'classId': id,
             'status': 'present'
         }
     })
 
 
     //attendance non-persisted
-    res.status(201).json({
+    res.status(200).json({
         'success': true,
         'data': {
-            'classId': '',
+            'classId': id,
             'status': null
         }
     })
 })
 
 //teacher only
-app.post('/attendance/start', (req, res) => {
+app.post('/attendance/start',TeacherAuth, (req, res) => {
     //middleware auth
     const parseData = ClassIdSchema.safeParse(req.body)
     if (!parseData.success) {
@@ -342,5 +339,5 @@ app.post('/attendance/start', (req, res) => {
 app.listen(3000, () => {
     mongoose.connect(process.env.mongodb_URL || ''
     ).then(() => console.log('connected to DB'))
-    console.log('server running in port 3000')
+    console.log('server running in port 3000 and uuid')
 })
