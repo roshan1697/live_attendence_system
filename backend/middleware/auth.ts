@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import Jwt from 'jsonwebtoken'
-import { Class } from '../db'
+import { Class } from '../utils/db'
 
 export const Auth = (req:Request,res:Response,next:NextFunction) => {
     const token = req.body('Authorization')

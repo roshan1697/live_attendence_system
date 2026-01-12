@@ -1,9 +1,9 @@
 import express from "express";
 import mongoose from "mongoose";
 import { Types } from "mongoose";
-import { ClassIdSchema, ClassSchema, LoginSchema, SignUpSchema, StudentIdSchema } from "./types";
+import { ClassIdSchema, ClassSchema, LoginSchema, SignUpSchema, StudentIdSchema } from "./utils/types";
 import dotenv from 'dotenv'
-import { Class, User } from "./db";
+import { Class, User } from "./utils/db";
 import bcrypt from 'bcrypt'
 import Jwt from "jsonwebtoken";
 import { Auth, ClassAuth, SessionClass, TeacherAuth } from "./middleware/auth";

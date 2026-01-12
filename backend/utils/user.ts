@@ -9,7 +9,7 @@ export class User {
     }
     initHandler = () => {
         this.ws.on('message', async(data)=>{
-
+            const token = data
         })
     }
 
@@ -17,7 +17,7 @@ export class User {
 
     }
 
-    ondestroy = () => {
+    onDestroy = () => {
 
     }
 }

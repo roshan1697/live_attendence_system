@@ -26,8 +26,14 @@ const ClassSchema = new mongoose.Schema({
 }) 
 
 const AttendanceSchema = new mongoose.Schema({
-    classId:mongoose.Schema.ObjectId,
-    studentId:mongoose.Schema.ObjectId,
+    classId:{
+        type:mongoose.Schema.ObjectId,
+        ref:'Class'
+    },
+    studentId:{
+        type:mongoose.Schema.ObjectId,
+        ref:'User'
+    },
     status: {
         type:String,
         enum:['present','absent']
