@@ -17,7 +17,10 @@ type ClassPopulated = {
     className: string;
     teacherId: null | { _id: Types.ObjectId; name: string; email: string };
     studentIds: Array<{ _id: Types.ObjectId; name: string; email: string }>;
-};
+}
+
+const secret = process.env.JWT_SECRET
+if (!secret) throw new Error("JWT_SECRET is not set")
 
 app.post('/auth/signup', async (req, res) => {
     const parseData = SignUpSchema.safeParse(req.body)
@@ -39,7 +42,7 @@ app.post('/auth/signup', async (req, res) => {
             password: hashedPassword,
             role: parseData.data.role
         })
-        const token = Jwt.sign({ userId: user._id, role: user.role }, process.env.jwt_secret || '', {
+        const token = Jwt.sign({ userId: user._id, role: user.role }, secret, {
             expiresIn: '12h'
         })
         res.status(201).json({
@@ -101,7 +104,7 @@ app.post('/auth/login', async (req, res) => {
             })
             return
         }
-        const token = Jwt.sign({ userId: user._id, role: user.role }, process.env.jwt_secret || '', {
+        const token = Jwt.sign({ userId: user._id, role: user.role }, secret, {
             expiresIn: '12h'
         })
 

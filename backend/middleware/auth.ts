@@ -2,6 +2,11 @@ import type { NextFunction, Request, Response } from 'express'
 import Jwt from 'jsonwebtoken'
 import { Class } from '../utils/db'
 
+
+const secret = process.env.JWT_SECRET;
+if (!secret) throw new Error("JWT_SECRET is not set");
+
+
 export const Auth = (req:Request,res:Response,next:NextFunction) => {
     const token = req.body('Authorization')
     if(!token){
@@ -12,7 +17,7 @@ export const Auth = (req:Request,res:Response,next:NextFunction) => {
         return
     }
     try{
-        const decoded = Jwt.verify(token,process.env.jwt_secret || '') as {userId:string, role:string}
+        const decoded = Jwt.verify(token,secret) as {userId:string, role:string}
         req.userId = decoded.userId
         next()
     }catch (e){
@@ -33,7 +38,7 @@ export const TeacherAuth = (req:Request,res:Response,next:NextFunction) =>{
     return 
     }
     try{
-        const decoded = Jwt.verify(token,process.env.jwt_secret || '') as {userId:string, role:string}
+        const decoded = Jwt.verify(token,secret) as {userId:string, role:string}
         if(decoded.role !== 'teacher'){
             res.status(403).json({
                 'success':false,

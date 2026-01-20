@@ -13,6 +13,6 @@ wss.on('connection',(ws)=>{
         user = new User(ws)
     })
     ws.on('close',()=>{
-
+        user?.onLeft()
     })
 })

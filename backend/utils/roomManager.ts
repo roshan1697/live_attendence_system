@@ -30,7 +30,7 @@ export class RoomManager {
     
     }
 
-    public broadcastMessage = (userId:string,classId:string,payload:string) =>{
+    public broadcastMessage = (userId:string,classId:string,payload:any) =>{
         if(!this.rooms.has(classId)){
             return
         }
