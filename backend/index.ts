@@ -342,5 +342,5 @@ app.post('/attendance/start',TeacherAuth, (req, res) => {
 app.listen(3000, () => {
     mongoose.connect(process.env.mongodb_URL || ''
     ).then(() => console.log('connected to DB'))
-    console.log('server running in port 3000 and uuid')
+    console.log('server running in port 3000')
 })

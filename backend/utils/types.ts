@@ -1,4 +1,5 @@
 import z from "zod";
+import * as ws from 'ws'
 
 export const SignUpSchema = z.object({
     name: z.string(),
@@ -29,6 +30,15 @@ export const ClassIdSchema = z.object({
 declare global {
     namespace Express {
         export interface Request {
+            role?: 'student' | 'teacher'
+            userId: string
+        }
+    }
+   
+}
+declare module 'ws' {   
+     export interface WebSocket {
+        user:{
             role?: 'student' | 'teacher'
             userId: string
         }

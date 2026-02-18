@@ -1,4 +1,4 @@
-import type { User } from "./user";
+import type { UserSession } from "./user";
 
 export class RoomManager {
     rooms:Map<string,Map<string,User>> = new Map()
@@ -14,7 +14,7 @@ export class RoomManager {
     }
 
 
-    public addUSer = (user:User,classId:string) =>{
+    public addUSer = (user:UserSession,classId:string) =>{
         if(!this.rooms.has(classId)){
             this.rooms.set(classId, new Map())
         }
